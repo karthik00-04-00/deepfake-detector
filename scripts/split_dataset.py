@@ -18,6 +18,9 @@ Outputs:
   - data/processed/ffpp/test/real, fake
   - writes a small summary JSON to data/processed/split_summary.json
 """
+print("🚀 RUNNING CORRECT SPLIT SCRIPT")
+
+
 from pathlib import Path
 import random
 import shutil
