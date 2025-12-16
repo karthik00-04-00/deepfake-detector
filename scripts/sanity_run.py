@@ -62,7 +62,15 @@ def main():
     )
 
     # Model
-    model = get_model(num_classes=2, pretrained=False).to(DEVICE)
+    # The project `src.model.get_model` expects a config dict with model settings.
+    cfg = {
+        "model": {
+            "name": "resnet18",
+            "num_classes": 2,
+            "pretrained": False,
+        }
+    }
+    model = get_model(cfg).to(DEVICE)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LR)
 
@@ -78,7 +86,7 @@ def main():
 
         for i, (imgs, labels) in enumerate(loader):
             imgs = imgs.to(DEVICE)
-            labels = labels.to(DEVICE)
+            labels = labels.to(DEVICE).long()
 
             outputs = model(imgs)
             loss = criterion(outputs, labels)
