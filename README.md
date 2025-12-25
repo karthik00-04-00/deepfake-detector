@@ -1,42 +1,66 @@
-# Deepfake Detector — Image-based Prototype
+# Deepfake Detector — Image-based Deepfake Detection System
 
 ## Project Overview
-**Objective:** Build a small, complete image-based deepfake detection prototype that accepts a single cropped face image, returns a real/fake prediction with a confidence score, and exposes a FastAPI inference endpoint. A small DCGAN experiment is included as optional exploration.
+This project focuses on building an image-based deepfake detection system that classifies cropped face images as **real** or **fake** using deep learning. The goal is to design a clean, reproducible pipeline starting from a strong baseline model and progressively improving it through fine-tuning and future extensions.
 
-## Scope (Phase 0 → Phase 1)
-**In scope (initial):**
-- Image-only detection (no video processing).
-- Input: cropped face images (face detection/cropping part of preprocessing).
-- Small dataset to start (~400 labeled images).
-- Baseline CNN model (ResNet18 or a small custom CNN).
-- Training, evaluation, and an inference API (FastAPI + uvicorn).
-- Optional: small DCGAN under `src/gan/` for exploration.
+The project is implemented in phases, following a structured machine learning workflow rather than jumping directly to complex models.
 
-**Out of scope (for now):**
-- Real-time video detection, multimodal models, large-scale distributed training, web-scraping data collection, cloud deployment, and production CI/CD.
+---
+
+## Current Scope
+- Image-based deepfake detection (faces only)
+- Input: cropped face images
+- Dataset: FaceForensics++ (cropped faces)
+- Model: ResNet18 (ImageNet pretrained)
+- GPU-accelerated training (CUDA)
+- Evaluation using validation AUC and accuracy
+- Planned FastAPI inference endpoint
+
+---
+
+## Project Phases (High-Level)
+- **Phase 0:** Planning, environment setup, GPU verification  
+- **Phase 1:** Dataset preparation and preprocessing  
+- **Phase 1.0:** Sanity checks and pipeline validation  
+- **Phase 2:** Image-based deepfake detection  
+  - **Phase 2.1:** Frozen ResNet18 baseline  
+  - **Phase 2.2:** Partial fine-tuning of deeper layers *(in progress)*  
+- **Phase 3 (Planned):** Model robustness and improvements  
+- **Phase 4 (Planned):** Video-based deepfake detection  
+
+Detailed implementation and results are documented separately.
+
+---
+
+## Baseline Results (Phase 2.1)
+- Architecture: ResNet18 (pretrained on ImageNet)
+- Training strategy: Frozen backbone, trainable classifier head
+- Dataset: FaceForensics++ (cropped face images)
+- Validation AUC: **~0.96**
+
+This baseline serves as a reference point for further fine-tuning and model improvements.
+
+---
 
 ## Folder Structure
 deepfake-detector/
-├─ .venv/ # local virtual environment (ignored by git)
-├─ requirements.txt # python deps
-├─ .gitignore
-├─ README.md
 ├─ data/
-│ ├─ raw/ # raw/original images
-│ └─ processed/ # preprocessed / cropped faces
+│ └─ processed/ # processed face images (ignored by git)
 ├─ src/
-│ ├─ data.py # dataset & preprocessing
-│ ├─ model.py # model architectures
+│ ├─ data.py # dataset loader
+│ ├─ model.py # model definitions
 │ ├─ train.py # training script
 │ ├─ eval.py # evaluation script
-│ ├─ utils.py # helper utilities
-│ └─ api/
-│ └─ app.py # FastAPI inference app
-├─ notebooks/ # experiments & exploration notebooks
-├─ experiments/
-│ └─ logs/ # training logs / tensorboard
+│ └─ api/ # FastAPI app (planned)
+├─ configs/ # training configuration files
 ├─ outputs/
-│ ├─ figures/ # plots & visualizations
 │ └─ models/ # saved model checkpoints
 └─ docs/
-└─ report/ # short project report
+└─ report/ # detailed project documentation
+
+
+---
+
+## How to Run (Baseline Training)
+```bash
+python -m src.train --config configs/baseline.yaml
