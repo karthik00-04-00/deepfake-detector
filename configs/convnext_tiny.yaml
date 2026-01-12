@@ -1,0 +1,26 @@
+model:
+  name: convnext_tiny
+  num_classes: 2
+  pretrained: true
+  finetune_stage: false
+
+training:
+  seed: 42
+  epochs: 10
+  batch_size: 32
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  optimizer: adam
+
+data:
+  dataset: ffpp
+  data_dir: data/processed/ffpp
+  train_dir: data/processed/ffpp/train
+  val_dir: data/processed/ffpp/val
+  test_dir: data/processed/ffpp/test
+  image_size: 224
+  num_workers: 4
+
+logging:
+  save_dir: outputs
+  experiment_name: convnext_tiny_frozen

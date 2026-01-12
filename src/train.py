@@ -11,11 +11,17 @@ from src.model import get_model
 from src.utils import set_seed, ensure_dir, get_logger
 
 
+# -------------------------
+# Config loading
+# -------------------------
 def load_config(path):
     with open(path, "r") as f:
         return yaml.safe_load(f)
 
 
+# -------------------------
+# Transforms
+# -------------------------
 def get_transforms(cfg, train=True):
     tfms = [
         transforms.Resize(
@@ -24,13 +30,19 @@ def get_transforms(cfg, train=True):
         transforms.ToTensor(),
         transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225]
-        )
+            std=[0.229, 0.224, 0.225],
+        ),
     ]
     return transforms.Compose(tfms)
 
 
+# -------------------------
+# Training loop
+# -------------------------
 def train(cfg):
+    print("CFG KEYS:", cfg.keys())
+
+    # Reproducibility
     set_seed(cfg["training"]["seed"])
     logger = get_logger("train")
 
@@ -45,45 +57,58 @@ def train(cfg):
     train_ds = DeepfakeDataset(
         cfg["data"]["data_dir"],
         "train",
-        train_tf
+        train_tf,
     )
     val_ds = DeepfakeDataset(
         cfg["data"]["data_dir"],
         "val",
-        val_tf
+        val_tf,
     )
 
+    # Dataloaders
     train_loader = DataLoader(
         train_ds,
         batch_size=cfg["training"]["batch_size"],
         shuffle=True,
-        num_workers=cfg["data"]["num_workers"]
+        num_workers=cfg["data"]["num_workers"],
     )
     val_loader = DataLoader(
         val_ds,
         batch_size=cfg["training"]["batch_size"],
         shuffle=False,
-        num_workers=cfg["data"]["num_workers"]
+        num_workers=cfg["data"]["num_workers"],
     )
 
-    # Model
-    model = get_model(
-        num_classes=cfg["model"]["num_classes"],
-        pretrained=cfg["model"]["pretrained"]
-    ).to(device)
+    # -------------------------
+    # MODEL (CRITICAL FIX)
+    # -------------------------
+    # Phase 3+ uses config-driven model selection
+    model = get_model(cfg).to(device)
 
+    # Debug: log trainable parameters
+    print("=== TRAINABLE PARAMETERS ===")
+    for name, p in model.named_parameters():
+        if p.requires_grad:
+            print(name)
+    print("=== END ===")
+
+    # Loss & optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=cfg["training"]["learning_rate"],
-        weight_decay=cfg["training"]["weight_decay"]
+        weight_decay=cfg["training"].get("weight_decay", 0.0),
     )
 
     ensure_dir(os.path.join(cfg["logging"]["save_dir"], "models"))
 
     best_auc = 0.0
 
+    # -------------------------
+    # Epoch loop
+    # -------------------------
     for epoch in range(cfg["training"]["epochs"]):
+
         # -------- TRAIN --------
         model.train()
         running_loss = 0.0
@@ -91,6 +116,7 @@ def train(cfg):
         for i, (images, labels) in enumerate(train_loader):
             if i == 0:
                 logger.info("First batch loaded")
+
             images = images.to(device)
             labels = labels.to(device)
 
@@ -133,14 +159,32 @@ def train(cfg):
                 os.path.join(
                     cfg["logging"]["save_dir"],
                     "models",
-                    "best_baseline.pth"
-                )
+                    "best_finetuned.pth",
+                ),
             )
             logger.info("Saved new best model")
 
     logger.info(f"Training complete. Best Val AUC: {best_auc:.4f}")
 
 
+# -------------------------
+# Entry point
+# -------------------------
 if __name__ == "__main__":
-    cfg = load_config("configs/baseline.yaml")
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--config",
+        type=str,
+        required=True,
+        help="Path to config YAML file",
+    )
+    args = parser.parse_args()
+
+    print("CONFIG PATH PASSED:", args.config)
+
+    cfg = load_config(args.config)
+    print("CFG LOADED TYPE:", type(cfg))
+
     train(cfg)
