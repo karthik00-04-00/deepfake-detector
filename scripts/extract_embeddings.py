@@ -1,6 +1,7 @@
 print("extract_embeddings.py loaded")
 
 import torch
+import torch.nn as nn
 from pathlib import Path
 from PIL import Image
 import numpy as np
@@ -36,7 +37,19 @@ def main():
         torch.load("outputs/models/best_baseline.pth", map_location=DEVICE)
     )
 
-    model.fc = torch.nn.Identity()
+    if hasattr(model, "fc"):
+        model.fc = nn.Identity()
+        print("Removed fc head (ResNet)")
+    elif hasattr(model, "classifier"):
+        if isinstance(model.classifier, nn.Sequential):
+            model.classifier[-1] = nn.Identity()
+            print("Removed classifier[-1] head")
+        else:
+            model.classifier = nn.Identity()
+            print("Removed classifier head")
+    else:
+        raise RuntimeError("Unknown model head structure")
+
     model.to(DEVICE).eval()
 
     videos = list(FRAMES_DIR.iterdir())
