@@ -49,8 +49,10 @@ deepfake-detector/
 ├─ src/
 │ ├─ data.py # dataset loader
 │ ├─ model.py # model definitions
-│ ├─ train.py # training script
-│ ├─ eval.py # evaluation script
+│ ├─ research/ # frozen experiment code (do not edit)
+│ │  ├─ train.py # training script
+│ │  └─ eval.py # evaluation script
+│ ├─ inference/ # future inference code
 │ └─ api/ # FastAPI app (planned)
 ├─ configs/ # training configuration files
 ├─ outputs/
@@ -63,9 +65,18 @@ deepfake-detector/
 
 ## How to Run (Baseline Training)
 ```bash
-python -m src.train --config configs/baseline.yaml
+python -m src.research.train --config configs/baseline.yaml
+```
 
-Temporal Deepfake Detection (Video-Level Extension)
+Evaluation (frozen research code):
+```bash
+python -m src.research.eval
+```
+*(Uses configs/baseline.yaml by default; ensure checkpoint exists.)*
+
+---
+
+## Temporal Deepfake Detection (Video-Level Extension)
 
 While image-based deepfake detection provides a strong baseline, it is fundamentally limited by frame-level cues. Many modern deepfakes appear visually convincing in individual frames but exhibit temporal inconsistencies when analyzed over longer durations.
 
