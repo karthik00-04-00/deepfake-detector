@@ -43,11 +43,8 @@ def main():
                     x = transform(img).unsqueeze(0).to(DEVICE)
 
                     with torch.no_grad():
-                        logit = model(x).squeeze()
-                        with torch.no_grad():
-                            logits = model(x)
-                            prob = torch.softmax(logits, dim=1)[0, 1].item()
-
+                        logits = model(x)
+                        prob = torch.softmax(logits, dim=1)[0, 1].item()
 
                     rec = {
                         "video": video_dir.name,
