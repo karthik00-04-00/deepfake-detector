@@ -62,23 +62,21 @@ class VideoEmbeddingDataset(Dataset):
 
         T = len(embeddings)
 
-# -------------------------
-# Temporal stress tests
-# -------------------------
-        if self.temporal_mode == "shuffle":
+        # Temporal stress tests
+        if self.temporal_mode == "normal":
+            pass
+        elif self.temporal_mode == "shuffle":
             idx = np.random.permutation(T)
             embeddings = embeddings[idx]
-
         elif self.temporal_mode == "reverse":
             embeddings = embeddings[::-1]
         elif self.temporal_mode == "first_25":
             embeddings = embeddings[: max(1, int(0.25 * T))]
-
         elif self.temporal_mode == "first_50":
             embeddings = embeddings[: max(1, int(0.50 * T))]
         elif self.temporal_mode == "last_50":
-            embeddings = embeddings[int(0.50 * T):]
-
+            start_idx = max(0, int(0.5 * T))
+            embeddings = embeddings[start_idx:]
 
         return {
             "video_id": item["video_id"],
