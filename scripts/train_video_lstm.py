@@ -145,6 +145,13 @@ def main():
         else:
             print(" | Val AUC: undefined (single class)")
 
+    # After training loop ends
+    torch.save(
+        model.state_dict(),
+        "outputs/models/video_lstm_last.pth"
+    )
+    print("LSTM checkpoint saved.")
+
 
 if __name__ == "__main__":
     main()

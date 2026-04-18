@@ -6,13 +6,12 @@ data:
   dataset: ffpp
   data_dir: data/processed/ffpp
   image_size: 224
-  num_workers: 0
-
+  num_workers: 2
 
 training:
   epochs: 10
   batch_size: 32
-  learning_rate: 0.0003
+  learning_rate: 0.0001
   weight_decay: 0.0001
   optimizer: adam
   loss: cross_entropy
@@ -22,6 +21,7 @@ model:
   name: resnet18
   pretrained: true
   num_classes: 2
+  finetune_layer4: true
 
 augmentation:
   train:
@@ -35,3 +35,10 @@ logging:
   save_dir: outputs
   save_best_only: true
   metric_to_monitor: val_auc
+
+# ---------------------------
+# EVALUATION (REQUIRED)
+# ---------------------------
+eval:
+  model_path: outputs/models/best_baseline.pth
+  test_dir: data/processed/ffpp/test

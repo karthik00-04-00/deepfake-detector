@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deepfake Detector</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0b0f1a;
+      color: #e2e8f0;
+      font-family: 'Inter', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      padding: 28px 0 20px;
+      text-align: center;
+      background: linear-gradient(180deg, rgba(56,189,248,0.06) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(56,189,248,0.08);
+    }
+    header h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #38bdf8, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header p {
+      color: #64748b;
+      font-size: 0.88rem;
+      margin-top: 6px;
+    }
+
+    /* ── Main Card ── */
+    .card {
+      width: 100%;
+      max-width: 520px;
+      margin: 40px 20px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 16px;
+      padding: 32px;
+      backdrop-filter: blur(12px);
+    }
+
+    /* ── Drop Zone ── */
+    .dropzone {
+      border: 2px dashed rgba(56,189,248,0.3);
+      border-radius: 12px;
+      padding: 44px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.25s, background 0.25s;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: #38bdf8;
+      background: rgba(56,189,248,0.04);
+    }
+    .dropzone-icon {
+      font-size: 2.4rem;
+      margin-bottom: 10px;
+      display: block;
+    }
+    .dropzone-text {
+      font-size: 0.95rem;
+      color: #94a3b8;
+    }
+    .dropzone-text strong {
+      color: #38bdf8;
+    }
+    .dropzone-hint {
+      font-size: 0.75rem;
+      color: #475569;
+      margin-top: 8px;
+    }
+
+    /* ── File Info ── */
+    .file-info {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      margin-top: 18px;
+      padding: 12px 16px;
+      background: rgba(56,189,248,0.05);
+      border: 1px solid rgba(56,189,248,0.1);
+      border-radius: 10px;
+    }
+    .file-info.visible { display: flex; }
+    .file-icon { font-size: 1.6rem; }
+    .file-details { flex: 1; min-width: 0; }
+    .file-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .file-remove {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px;
+      line-height: 1;
+    }
+    .file-remove:hover { color: #f87171; }
+
+    /* ── Preview ── */
+    .preview {
+      display: none;
+      margin-top: 16px;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(56,189,248,0.1);
+    }
+    .preview.visible { display: block; }
+    .preview img, .preview video {
+      width: 100%;
+      max-height: 260px;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+
+    /* ── Analyze Button ── */
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      color: #0b0f1a;
+    }
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(56,189,248,0.25);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn.loading {
+      position: relative;
+      color: transparent;
+    }
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      margin: -11px 0 0 -11px;
+      border: 3px solid rgba(11,15,26,0.3);
+      border-top-color: #0b0f1a;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Result ── */
+    .result {
+      display: none;
+      margin-top: 24px;
+      text-align: center;
+      animation: fadeIn 0.4s ease;
+    }
+    .result.visible { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .verdict {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+    .verdict.real { color: #4ade80; }
+    .verdict.fake { color: #f87171; }
+
+    .confidence-bar-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      margin: 16px 0 8px;
+      overflow: hidden;
+    }
+    .confidence-bar {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.8s ease;
+    }
+    .confidence-bar.real { background: linear-gradient(90deg, #22c55e, #4ade80); }
+    .confidence-bar.fake { background: linear-gradient(90deg, #ef4444, #f87171); }
+
+    .confidence-label {
+      font-size: 0.85rem;
+      color: #94a3b8;
+    }
+    .confidence-value {
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .meta {
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: #475569;
+    }
+
+    /* ── Error ── */
+    .error {
+      display: none;
+      margin-top: 18px;
+      padding: 12px 16px;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.2);
+      border-radius: 10px;
+      color: #f87171;
+      font-size: 0.85rem;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .error.visible { display: block; }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: auto;
+      padding: 24px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: #334155;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 560px) {
+      .card { margin: 24px 12px; padding: 20px; }
+      header h1 { font-size: 1.4rem; }
+      .dropzone { padding: 32px 16px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <h1>🛡️ Deepfake Detector</h1>
+    <p>Upload an image or video to detect manipulation</p>
+  </header>
+
+  <div class="card">
+    <!-- Drop Zone -->
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <span class="dropzone-icon">📁</span>
+      <div class="dropzone-text">Drag & drop your file here, or <strong>browse</strong></div>
+      <div class="dropzone-hint">Supports images (JPG, PNG) and videos (MP4)</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,video/*" hidden />
+
+    <!-- File Info -->
+    <div class="file-info" id="fileInfo">
+      <span class="file-icon" id="fileIcon">🖼️</span>
+      <div class="file-details">
+        <div class="file-name" id="fileName"></div>
+        <div class="file-size" id="fileSize"></div>
+      </div>
+      <button class="file-remove" id="fileRemove" title="Remove file">✕</button>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview" id="preview"></div>
+
+    <!-- Analyze Button -->
+    <button class="btn" id="analyzeBtn" disabled onclick="analyze()">Analyze</button>
+
+    <!-- Error -->
+    <div class="error" id="error"></div>
+
+    <!-- Result -->
+    <div class="result" id="result">
+      <div class="verdict" id="verdict"></div>
+      <div class="confidence-bar-container">
+        <div class="confidence-bar" id="confidenceBar"></div>
+      </div>
+      <div class="confidence-label">Confidence: <span class="confidence-value" id="confidenceValue"></span></div>
+      <div class="meta" id="meta"></div>
+    </div>
+  </div>
+
+  <footer>Deepfake Detector &bull; Powered by ResNet-18 + LSTM</footer>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileIcon = document.getElementById('fileIcon');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileRemove = document.getElementById('fileRemove');
+    const preview = document.getElementById('preview');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const resultDiv = document.getElementById('result');
+    const errorDiv = document.getElementById('error');
+
+    let selectedFile = null;
+
+    // — Drag & Drop —
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    fileRemove.addEventListener('click', clearFile);
+
+    function handleFile(file) {
+      selectedFile = file;
+      const isVideo = file.type.startsWith('video');
+
+      fileName.textContent = file.name;
+      fileSize.textContent = formatSize(file.size);
+      fileIcon.textContent = isVideo ? '🎬' : '🖼️';
+      fileInfo.classList.add('visible');
+
+      // Preview
+      preview.innerHTML = '';
+      const url = URL.createObjectURL(file);
+      if (isVideo) {
+        const vid = document.createElement('video');
+        vid.src = url;
+        vid.controls = true;
+        vid.muted = true;
+        preview.appendChild(vid);
+      } else {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Preview';
+        preview.appendChild(img);
+      }
+      preview.classList.add('visible');
+
+      analyzeBtn.disabled = false;
+      resultDiv.classList.remove('visible');
+      errorDiv.classList.remove('visible');
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileInfo.classList.remove('visible');
+      preview.classList.remove('visible');
+      preview.innerHTML = '';
+      analyzeBtn.disabled = true;
+      resultDiv.classList.remove('visible');
+      errorDiv.classList.remove('visible');
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    // — Analyze —
+    async function analyze() {
+      if (!selectedFile) return;
+
+      const isVideo = selectedFile.type.startsWith('video');
+      const endpoint = isVideo ? '/predict/video' : '/predict/image';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      analyzeBtn.classList.add('loading');
+      analyzeBtn.disabled = true;
+      resultDiv.classList.remove('visible');
+      errorDiv.classList.remove('visible');
+
+      try {
+        const res = await fetch(endpoint, { method: 'POST', body: formData });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `Server error (${res.status})`);
+        }
+
+        const data = await res.json();
+        showResult(data);
+      } catch (err) {
+        errorDiv.textContent = '⚠️ ' + err.message;
+        errorDiv.classList.add('visible');
+      } finally {
+        analyzeBtn.classList.remove('loading');
+        analyzeBtn.disabled = false;
+      }
+    }
+
+    function showResult(data) {
+      const label = data.label.toLowerCase();
+      const conf = data.confidence;
+      const pct = (conf * 100).toFixed(1);
+
+      const verdict = document.getElementById('verdict');
+      verdict.textContent = label.toUpperCase();
+      verdict.className = 'verdict ' + label;
+
+      const bar = document.getElementById('confidenceBar');
+      bar.className = 'confidence-bar ' + label;
+      bar.style.width = '0%';
+      requestAnimationFrame(() => { bar.style.width = pct + '%'; });
+
+      document.getElementById('confidenceValue').textContent = pct + '%';
+
+      const meta = document.getElementById('meta');
+      meta.textContent = data.frames_used ? `Frames analyzed: ${data.frames_used}` : '';
+
+      resultDiv.classList.add('visible');
+    }
+  </script>
+
+</body>
+</html>
